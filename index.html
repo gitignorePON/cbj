@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Блэкджэк — Игра в браузере</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+      color: white;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .game-container {
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin: 20px 0;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    /* Баланс и ставки */
+    .balance-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+    }
+
+    .balance {
+      background: rgba(0,0,0,0.4);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .chips {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 15px 0;
+    }
+
+    .chip {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      transition: all 0.2s;
+    }
+
+    .chip:hover {
+      transform: scale(1.1);
+    }
+
+    .chip-5 { background: #ff4136; color: white; }
+    .chip-50 { background: #0074D9; color: white; }
+    .chip-100 { background: #2ECC40; color: white; }
+    .chip-1000 { background: #FFDC00; color: #222; }
+
+    .bet-area {
+      margin: 15px 0;
+      font-size: 1.1rem;
+      min-height: 30px;
+    }
+
+    .current-bet {
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .player-area, .dealer-area {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      min-height: 180px;
+      position: relative;
+    }
+
+    .area-title {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+      color: #ffd700;
+    }
+
+    .cards-area {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 120px;
+    }
+
+    .card {
+      width: 80px;
+      height: 120px;
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .card.red { color: #d32f2f; }
+    .card.black { color: #212121; }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255,255,255,0.1) 10px,
+        rgba(255,255,255,0.1) 20px
+      );
+      pointer-events: none;
+    }
+
+    .card.back {
+      background: #1a5fb4;
+      background-image: 
+        linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%);
+      background-size: 20px 20px;
+      color: transparent;
+    }
+
+    .card-value-top { align-self: flex-start; }
+    .card-value-bottom { align-self: flex-end; transform: rotate(180deg); }
+    .card-suit { font-size: 20px; line-height: 1; }
+
+    .deck {
+      width: 80px;
+      height: 120px;
+      background: #1a5fb4;
+      border-radius: 8px;
+      margin: 20px auto;
+      position: relative;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .deck:hover {
+      transform: scale(1.05);
+    }
+
+    .deck::before,
+    .deck::after {
+      content: '';
+      position: absolute;
+      top: 8px; left: 8px; right: 8px; bottom: 8px;
+      border: 2px dashed rgba(255,255,255,0.5);
+      border-radius: 4px;
+    }
+
+    .deck::after {
+      top: 16px; left: 16px; right: 16px; bottom: 16px;
+    }
+
+    .controls {
+      margin: 25px 0;
+    }
+
+    button {
+      background: #ffd700;
+      color: #1a2a6c;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin: 0 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    button:hover {
+      background: #ffcc00;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background: #666;
+      color: #999;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      font-size: 1.6rem;
+      margin: 20px 0;
+      min-height: 36px;
+      font-weight: bold;
+      color: #ffd700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+
+    .hint {
+      margin-top: 20px;
+      font-size: 1.1rem;
+      color: #ccc;
+      font-style: italic;
+    }
+
+    /* Анимации */
+    @keyframes dealCard {
+      0% {
+        transform: translateX(0) translateY(0) rotate(0);
+        opacity: 0;
+      }
+      100% {
+        transform: translateX(0) translateY(0) rotate(0);
+        opacity: 1;
+      }
+    }
+
+    .card.animate-deal {
+      animation: dealCard 0.4s ease-out forwards;
+    }
+
+    @keyframes flipCard {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(180deg); }
+    }
+
+    .card.animate-flip {
+      animation: flipCard 0.5s ease-in-out forwards;
+      transform-style: preserve-3d;
+    }
+
+    .card.animate-flip .card-front {
+      backface-visibility: hidden;
+    }
+
+    .card.animate-flip .card-back {
+      backface-visibility: hidden;
+      transform: rotateY(180deg);
+    }
+
+    /* Фишка — летит к банку или игроку */
+    .chip.flying {
+      position: fixed;
+      z-index: 100;
+      pointer-events: none;
+      transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);
+    }
+
+    /* Пополнение */
+    #topup-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ffd700;
+      color: #1a2a6c;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    #topup-btn:hover {
+      transform: scale(1.1);
+    }
+
+    #topup-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #2c3e50;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 90%;
+      width: 500px;
+      text-align: left;
+      color: white;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 15px;
+      color: #ffd700;
+    }
+
+    .modal-content p {
+      margin: 10px 0;
+      line-height: 1.5;
+    }
+
+    .close-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .chip { width: 40px; height: 40px; font-size: 12px; }
+      .card { width: 60px; height: 90px; font-size: 12px; }
+      .deck { width: 60px; height: 90px; }
+      h1 { font-size: 2rem; }
+      .hint { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>♠️ Блэкджэк ♣️</h1>
+
+    <div class="balance-section">
+      <div class="balance">💰 Баланс: <span id="balance">100</span></div>
+    </div>
+
+    <div class="chips">
+      <div class="chip chip-5" data-value="5">5</div>
+      <div class="chip chip-50" data-value="50">50</div>
+      <div class="chip chip-100" data-value="100">100</div>
+      <div class="chip chip-1000" data-value="1000">1000</div>
+    </div>
+
+    <div class="bet-area">
+      Ставка: <span class="current-bet" id="current-bet">0</span>
+    </div>
+
+    <div class="scoreboard">
+      <div>Дилер: <span id="dealer-score">?</span></div>
+      <div>Игрок: <span id="player-score">0</span></div>
+    </div>
+
+    <div class="dealer-area">
+      <div class="area-title">Дилер</div>
+      <div class="cards-area" id="dealer-cards"></div>
+    </div>
+
+    <div class="deck" id="deck" title="Нажмите, чтобы начать игру"></div>
+
+    <div class="player-area">
+      <div class="area-title">Вы</div>
+      <div class="cards-area" id="player-cards"></div>
+    </div>
+
+    <div class="status" id="status">Сделайте ставку и нажмите на колоду!</div>
+
+    <div class="controls">
+      <button id="hit" disabled>Взять</button>
+      <button id="stand" disabled>Хватит</button>
+    </div>
+
+    <div class="hint">Чтобы начать — выберите фишки и нажмите на колоду 🃏</div>
+  </div>
+
+  <!-- Кнопка пополнения -->
+  <button id="topup-btn">➕</button>
+
+  <!-- Модальное окно -->
+  <div id="topup-modal">
+    <div class="modal-content">
+      <h2>💵 Пополнить баланс</h2>
+      <p>1. Напишите в Telegram: <strong><a href="https://t.me/user_6574" target="_blank">@user_6574</a></strong></p>
+      <p>2. Укажите, сколько хотите пополнить и свой ник.</p>
+      <p>3. Получите ссылку на оплату → оплатите → деньги поступят на баланс.</p>
+      <p>⚠️ Пополнение обрабатывается вручную. Спасибо за понимание!</p>
+      <button class="close-btn" id="close-modal">Закрыть</button>
+    </div>
+  </div>
+
+  <script>
+    // === ИГРОВАЯ ЛОГИКА ===
+    const suits = [
+      { name: 'hearts', symbol: '♥', color: 'red' },
+      { name: 'diamonds', symbol: '♦', color: 'red' },
+      { name: 'clubs', symbol: '♣', color: 'black' },
+      { name: 'spades', symbol: '♠', color: 'black' }
+    ];
+
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+    function createDeck() {
+      const deck = [];
+      for (let suit of suits) {
+        for (let rank of ranks) {
+          let value = isNaN(rank) ? (rank === 'A' ? 11 : 10) : parseInt(rank);
+          deck.push({ rank, suit, value });
+        }
+      }
+      return deck;
+    }
+
+    function shuffle(deck) {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function calculateScore(hand) {
+      let score = 0;
+      let aces = 0;
+      for (let card of hand) {
+        score += card.value;
+        if (card.rank === 'A') aces++;
+      }
+      while (score > 21 && aces > 0) {
+        score -= 10;
+        aces--;
+      }
+      return score;
+    }
+
+    function createCardElement(card, isBack = false) {
+      const el = document.createElement('div');
+      el.classList.add('card');
+      
+      if (isBack) {
+        el.classList.add('back');
+      } else {
+        const colorClass = card.suit.color;
+        el.classList.add(colorClass);
+        
+        const top = document.createElement('div');
+        top.classList.add('card-value-top');
+        top.innerHTML = `${card.rank}<br><span class="card-suit">${card.suit.symbol}</span>`;
+        
+        const bottom = document.createElement('div');
+        bottom.classList.add('card-value-bottom');
+        bottom.innerHTML = `${card.rank}<br><span class="card-suit">${card.suit.symbol}</span>`;
+        
+        el.appendChild(top);
+        el.appendChild(bottom);
+      }
+      
+      return el;
+    }
+
+    // === СОСТОЯНИЕ ИГРЫ ===
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let gameActive = false;
+    let balance = 100;
+    let currentBet = 0;
+
+    const dealerCardsEl = document.getElementById('dealer-cards');
+    const playerCardsEl = document.getElementById('player-cards');
+    const dealerScoreEl = document.getElementById('dealer-score');
+    const playerScoreEl = document.getElementById('player-score');
+    const statusEl = document.getElementById('status');
+    const hitBtn = document.getElementById('hit');
+    const standBtn = document.getElementById('stand');
+    const deckEl = document.getElementById('deck');
+    const balanceEl = document.getElementById('balance');
+    const currentBetEl = document.getElementById('current-bet');
+
+    // Обновление UI
+    function updateUI() {
+      balanceEl.textContent = balance;
+      currentBetEl.textContent = currentBet;
+      playerScoreEl.textContent = calculateScore(playerHand);
+      dealerScoreEl.textContent = gameActive ? '?' : calculateScore(dealerHand);
+    }
+
+    // Анимация полёта фишки (from → to)
+    function flyChip(value, fromRect, toRect) {
+      const chipEl = document.createElement('div');
+      chipEl.classList.add('chip', 'flying');
+      chipEl.textContent = value;
+      chipEl.style.left = `${fromRect.left + window.scrollX + fromRect.width/2}px`;
+      chipEl.style.top = `${fromRect.top + window.scrollY + fromRect.height/2}px`;
+      chipEl.style.fontSize = '14px';
+      chipEl.style.width = '40px';
+      chipEl.style.height = '40px';
+      chipEl.style.borderRadius = '50%';
+      chipEl.style.display = 'flex';
+      chipEl.style.alignItems = 'center';
+      chipEl.style.justifyContent = 'center';
+      chipEl.style.zIndex = '200';
+      chipEl.style.pointerEvents = 'none';
+
+      // Цвета как у фишек
+      if (value === 5) chipEl.style.background = '#ff4136';
+      else if (value === 50) chipEl.style.background = '#0074D9';
+      else if (value === 100) chipEl.style.background = '#2ECC40';
+      else if (value === 1000) chipEl.style.background = '#FFDC00';
+
+      document.body.appendChild(chipEl);
+
+      setTimeout(() => {
+        chipEl.style.left = `${toRect.left + window.scrollX + toRect.width/2}px`;
+        chipEl.style.top = `${toRect.top + window.scrollY + toRect.height/2}px`;
+        chipEl.style.transform = 'scale(0.8)';
+        chipEl.style.opacity = '0';
+      }, 10);
+
+      setTimeout(() => {
+        chipEl.remove();
+      }, 1000);
+    }
+
+    // === УПРАВЛЕНИЕ СТАВКАМИ ===
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (gameActive) return;
+        const value = parseInt(chip.dataset.value);
+        if (balance >= value) {
+          currentBet += value;
+          balance -= value;
+          updateUI();
+
+          // Анимация: фишка летит от игрока к "ставке"
+          const chipRect = chip.getBoundingClientRect();
+          const betAreaRect = document.querySelector('.bet-area').getBoundingClientRect();
+          flyChip(value, chipRect, betAreaRect);
+        } else {
+          statusEl.textContent = '❗ Недостаточно средств';
+          setTimeout(() => {
+            if (!gameActive) statusEl.textContent = 'Сделайте ставку и нажмите на колоду!';
+          }, 2000);
+        }
+      });
+    });
+
+    // === РАЗДАЧА КАРТ ===
+    function dealCardTo(container, card, delay = 0, isBack = false) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          const cardEl = createCardElement(card, isBack);
+          cardEl.style.position = 'absolute';
+          cardEl.style.left = '50%';
+          cardEl.style.top = '-150px';
+          cardEl.style.opacity = '0';
+          cardEl.style.transform = 'scale(0.8)';
+          document.body.appendChild(cardEl);
+
+          setTimeout(() => {
+            const rect = container.getBoundingClientRect();
+            const containerX = rect.left + window.scrollX + rect.width / 2 - 40;
+            const containerY = rect.top + window.scrollY + rect.height / 2 - 60;
+
+            cardEl.style.transition = 'all 0.5s cubic-bezier(0.2, 0.8, 0.4, 1)';
+            cardEl.style.left = `${containerX}px`;
+            cardEl.style.top = `${containerY}px`;
+            cardEl.style.opacity = '1';
+            cardEl.style.transform = 'scale(1)';
+
+            setTimeout(() => {
+              container.appendChild(cardEl);
+              cardEl.style.position = 'static';
+              cardEl.classList.add('animate-deal');
+              resolve();
+            }, 500);
+          }, 10);
+        }, delay);
+      });
+    }
+
+    function flipCard(cardEl, actualCard) {
+      return new Promise(resolve => {
+        cardEl.classList.add('animate-flip');
+        setTimeout(() => {
+          cardEl.className = 'card';
+          const newCardEl = createCardElement(actualCard);
+          newCardEl.classList.add('animate-deal');
+          cardEl.parentNode.replaceChild(newCardEl, cardEl);
+          resolve();
+        }, 500);
+      });
+    }
+
+    // === НАЧАЛО ИГРЫ ===
+    async function startNewGame() {
+      if (currentBet === 0) {
+        statusEl.textContent = '❗ Сделайте ставку';
+        setTimeout(() => {
+          if (!gameActive) statusEl.textContent = 'Сделайте ставку и нажмите на колоду!';
+        }, 2000);
+        return;
+      }
+
+      deck = shuffle(createDeck());
+      playerHand = [];
+      dealerHand = [];
+      gameActive = true;
+
+      dealerCardsEl.innerHTML = '';
+      playerCardsEl.innerHTML = '';
+      hitBtn.disabled = false;
+      standBtn.disabled = false;
+      statusEl.textContent = 'Раздача...';
+
+      let card;
+
+      card = deck.pop(); playerHand.push(card); await dealCardTo(playerCardsEl, card, 0);
+      card = deck.pop(); dealerHand.push(card); await dealCardTo(dealerCardsEl, card, 300);
+      card = deck.pop(); playerHand.push(card); await dealCardTo(playerCardsEl, card, 600);
+      card = deck.pop(); dealerHand.push(card); await dealCardTo(dealerCardsEl, card, 900, true);
+
+      updateUI();
+
+      const playerScore = calculateScore(playerHand);
+      if (playerScore === 21) {
+        gameActive = false;
+        hitBtn.disabled = true;
+        standBtn.disabled = true;
+        setTimeout(async () => {
+          if (dealerCardsEl.children[1]) {
+            await flipCard(dealerCardsEl.children[1], dealerHand[1]);
+          }
+          updateUI();
+          const dealerScore = calculateScore(dealerHand);
+          if (dealerScore === 21) {
+            statusEl.textContent = 'Ничья! У обоих блэкджэк.';
+            // Ставка возвращается
+            balance += currentBet;
+          } else {
+            statusEl.textContent = 'Блэкджэк! Вы выиграли!';
+            balance += currentBet * 2; // выигрыш = ставка ×2 (ставка уже снята, возвращаем +удвоенную)
+          }
+          currentBet = 0;
+          updateUI();
+          // Анимация: фишки летят к игроку (победа)
+          if (dealerScore !== 21) {
+            const dealerAreaRect = dealerCardsEl.getBoundingClientRect();
+            const playerAreaRect = playerCardsEl.getBoundingClientRect();
+            [5, 50, 100, 1000].forEach(v => {
+              let count = Math.floor(currentBet / v);
+              for (let i = 0; i < count; i++) {
+                setTimeout(() => flyChip(v, dealerAreaRect, playerAreaRect), i * 200);
+              }
+              currentBet -= count * v;
+            });
+          }
+        }, 800);
+      } else {
+        statusEl.textContent = 'Ваш ход';
+      }
+    }
+
+    // === ХОД ИГРОКА ===
+    async function playerHit() {
+      if (!gameActive) return;
+      const card = deck.pop();
+      playerHand.push(card);
+      await dealCardTo(playerCardsEl, card, 0);
+      updateUI();
+      if (calculateScore(playerHand) > 21) {
+        gameActive = false;
+        hitBtn.disabled = true;
+        standBtn.disabled = true;
+        statusEl.textContent = `Перебор (${calculateScore(playerHand)})! Ставка потеряна.`;
+        currentBet = 0;
+        setTimeout(updateUI, 500);
+      }
+    }
+
+    // === ИГРОК ЗАВЕРШИЛ ХОД ===
+    async function playerStand() {
+      if (!gameActive) return;
+      gameActive = false;
+      hitBtn.disabled = true;
+      standBtn.disabled = true;
+      statusEl.textContent = 'Ход дилера...';
+
+      if (dealerCardsEl.children[1]) {
+        await flipCard(dealerCardsEl.children[1], dealerHand[1]);
+      }
+      updateUI();
+
+      while (calculateScore(dealerHand) < 17) {
+        await new Promise(r => setTimeout(r, 600));
+        const card = deck.pop();
+        dealerHand.push(card);
+        await dealCardTo(dealerCardsEl, card, 0);
+        updateUI();
+      }
+
+      const p = calculateScore(playerHand);
+      const d = calculateScore(dealerHand);
+      let win = false;
+      if (d > 21) {
+        statusEl.textContent = `Дилер перебрал (${d})! Вы выиграли!`;
+        win = true;
+      } else if (p > d) {
+        statusEl.textContent = `Вы выиграли! ${p} против ${d}`;
+        win = true;
+      } else if (p < d) {
+        statusEl.textContent = `Дилер выиграл: ${d} против ${p}. Ставка потеряна.`;
+      } else {
+        statusEl.textContent = `Ничья: ${p} — ${d}. Ставка возвращена.`;
+        balance += currentBet; // возврат при ничьей
+      }
+
+      if (win) {
+        balance += currentBet * 2;
+        // Анимация выигрыша
+        const dealerAreaRect = dealerCardsEl.getBoundingClientRect();
+        const playerAreaRect = playerCardsEl.getBoundingClientRect();
+        let tempBet = currentBet;
+        [1000, 100, 50, 5].forEach(v => {
+          let count = Math.floor(tempBet / v);
+          for (let i = 0; i < count; i++) {
+            setTimeout(() => flyChip(v, dealerAreaRect, playerAreaRect), i * 150);
+          }
+          tempBet -= count * v;
+        });
+      }
+
+      currentBet = 0;
+      setTimeout(updateUI, 500);
+    }
+
+    // === СЛУШАТЕЛИ ===
+    deckEl.addEventListener('click', startNewGame);
+    hitBtn.addEventListener('click', playerHit);
+    standBtn.addEventListener('click', playerStand);
+
+    // === ПОПОЛНЕНИЕ ===
+    const topupBtn = document.getElementById('topup-btn');
+    const modal = document.getElementById('topup-modal');
+    const closeBtn = document.getElementById('close-modal');
+
+    topupBtn.addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
+
+    // Инициализация
+    updateUI();
+    statusEl.textContent = 'Сделайте ставку и нажмите на колоду!';
+  </script>
+</body>
+</html>
